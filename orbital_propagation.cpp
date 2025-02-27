@@ -1,6 +1,7 @@
 #include <iostream>
-#include <array>
-#include <memory>
+// #include <array>
+// #include <memory>
+#include <functional>
 
 const double R_E = 6378;
 const double MU = 398600;
@@ -38,6 +39,24 @@ class StateVector {
       return StateVector(x + b.vx, y + b.vy, z + b.vz, vx + b.ax, vy + b.ay, vz + b.az);
     }
 };
+
+StateVector euler_step(std::function<StateDerivative(double, StateVector)> f, double t, const StateVector &y, double dt) {
+  return y + dt * f(dt, y);
+}
+
+StateDerivative keplerian_dynamics(double t, StateVector const &y) {
+  double radius = sqrt(pow(y.x, 2) + pow(y.y, 2) + pow(y.z, 2));
+  double acc_coefficient = -MU / pow(radius, 3);
+  return StateDerivative(
+    y.vx,
+    y.vy,
+    y.vz,
+    acc_coefficient * y.x,
+    acc_coefficient * y.y,
+    acc_coefficient * y.z
+  );
+}
+
 
 
 int main() {
