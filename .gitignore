@@ -1,5 +1,7 @@
 
 CppOrbital
+*.csv
+.cache
 
 CMakeLists.txt.user
 CMakeCache.txt
