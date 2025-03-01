@@ -1,7 +1,8 @@
 #include <iostream>
 // #include <array>
-// #include <memory>
+#include <memory>
 #include <functional>
+#include <vector>
 
 const double R_E = 6378;
 const double MU = 398600;
@@ -38,10 +39,26 @@ class StateVector {
     StateVector operator+(StateDerivative const &b) const {
       return StateVector(x + b.vx, y + b.vy, z + b.vz, vx + b.ax, vy + b.ay, vz + b.az);
     }
+
+    std::string display() const {
+      /*return "<" + x + ", " + y + ", " + z + ", " + vx + ", " + vy + ", " + vz + ">";*/
+      return std::format("<{}, {}, {}, {}, {}, {}>", x, y, z, vx, vy, vz);
+    }
 };
 
 StateVector euler_step(std::function<StateDerivative(double, StateVector)> f, double t, const StateVector &y, double dt) {
   return y + dt * f(dt, y);
+}
+
+std::unique_ptr<std::vector<StateVector>> euler_propagation(std::function<StateDerivative(double, StateVector)> f, double t0, const StateVector &y0, double dt, double tf) {
+  StateVector y = y0;
+  std::unique_ptr<std::vector<StateVector>> states(new std::vector<StateVector>());
+  for (double t = t0; t < tf; t += dt) {
+    states->push_back(y);
+    y = euler_step(f, t, y, dt);
+  }
+  states->push_back(y);
+  return states;
 }
 
 StateDerivative keplerian_dynamics(double t, StateVector const &y) {
@@ -68,4 +85,12 @@ int main() {
   StateVector y0 = StateVector(radius, 0, 0, 0, vel, 0);
   std::cout << "Initial Radius: " << radius << " [km], Initial Velocity: "
             << vel << " [km/s]" << std::endl;
+  double dt = 1;
+  double tf = 10000;
+  auto states = euler_propagation(keplerian_dynamics, 0, y0, dt, tf);
+  std::cout << "Propagation Finished!" << std::endl;
+  for (StateVector y : *states) {
+    std::cout << y.display() << "\n";
+  }
+  std::cout << std::endl;
 }
