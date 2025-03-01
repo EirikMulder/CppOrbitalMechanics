@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 // #include <array>
 #include <memory>
 #include <functional>
@@ -21,6 +22,10 @@ class StateDerivative {
 
     StateDerivative(double vx, double vy, double vz, double ax, double ay, double az)
     : vx(vx), vy(vy), vz(vz), ax(ax), ay(ay), az(az) { }
+
+    StateDerivative operator+(StateDerivative const &b) const {
+      return StateDerivative(vx + b.vx, vy + b.vy, vz + b.vz, ax + b.ax, ay + b.ay, az + b.az);
+    }
 };
 
 StateDerivative operator*(double a, StateDerivative const &b) {
@@ -50,15 +55,38 @@ class StateVector {
 };
 
 StateVector euler_step(std::function<StateDerivative(double, StateVector)> f, double t, const StateVector &y, double dt) {
-  return y + dt * f(dt, y);
+  return y + dt * f(t, y);
+}
+
+StateVector rk4_step(std::function<StateDerivative(double, StateVector)> f, double t, const StateVector &y, double dt) {
+  auto k1 = dt * f(t, y);
+  auto k2 = dt * f(t + dt/2, y + 1./2 * k1);
+  auto k3 = dt * f(t + dt/2, y + 1./2 * k2);
+  auto k4 = dt * f(t + dt, y + k3);
+  return y + (1./6) * (k1 + 2*k2 + 2*k3 + k4);
 }
 
 std::unique_ptr<std::vector<StateVector>> euler_propagation(std::function<StateDerivative(double, StateVector)> f, double t0, const StateVector &y0, double dt, double tf) {
   StateVector y = y0;
   std::unique_ptr<std::vector<StateVector>> states(new std::vector<StateVector>());
+  int expected_steps = ceil(tf / dt);
+  states->reserve(expected_steps);
   for (double t = t0; t < tf; t += dt) {
     states->push_back(y);
     y = euler_step(f, t, y, dt);
+  }
+  states->push_back(y);
+  return states;
+}
+
+std::unique_ptr<std::vector<StateVector>> rk4_propagation(std::function<StateDerivative(double, StateVector)> f, double t0, const StateVector &y0, double dt, double tf) {
+  StateVector y = y0;
+  std::unique_ptr<std::vector<StateVector>> states(new std::vector<StateVector>());
+  int expected_steps = ceil(tf / dt);
+  states->reserve(expected_steps);
+  for (double t = t0; t < tf; t += dt) {
+    states->push_back(y);
+    y = rk4_step(f, t, y, dt);
   }
   states->push_back(y);
   return states;
@@ -103,11 +131,30 @@ void plot_orbit(std::unique_ptr<std::vector<StateVector>> const &states) {
 }
 
 void save_orbit(std::unique_ptr<std::vector<StateVector>> const &states, std::string filename) {
-  
+  std::ofstream file;
+  file.open(filename);
+  file << "x,y,z,vx,vy,vz";
+  for (StateVector i : *states) {
+    file << "\n";
+    file << i.x << "," << i.y << "," << i.z << ",";
+    file << i.vx << "," << i.vy << "," << i.vz;
+  }
+  file << std::endl;
 }
 
 
-int main() {
+int main(int argc, char *argv[]) {
+  // CLI Arguments
+  std::string filename;
+  // First argument is filename
+  switch (argc) {
+    case 2:
+      filename = argv[1];
+      break;
+    default:
+      filename = "orbit.csv";
+  }
+
   std::cout << "Hello World!" << std::endl;
   double altitude = 400;
   double radius = R_E + altitude;
@@ -118,11 +165,9 @@ int main() {
             << vel << " [km/s]" << std::endl;
   double dt = 1;
   double tf = 10000;
-  auto states = euler_propagation(keplerian_dynamics, 0, y0, dt, tf);
+  auto states = rk4_propagation(keplerian_dynamics, 0, y0, dt, tf);
   std::cout << "Propagation Finished!" << std::endl;
-  /*for (StateVector y : *states) {*/
-  /*  std::cout << y.display() << "\n";*/
-  /*}*/
-  /*std::cout << std::endl;*/
-  plot_orbit(states);
+  /*plot_orbit(states);*/
+  save_orbit(states, filename);
+  std::cout << "Saved Orbital Data to " << filename << std::endl;
 }
