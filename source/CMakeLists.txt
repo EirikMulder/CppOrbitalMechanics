@@ -9,8 +9,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 # Project Definition
 project(CppOrbital VERSION 0.1)
 
-add_subdirectory(matplotplusplus)
+# add_subdirectory(matplotplusplus)
 
 # Executables
-add_executable(CppOrbital orbital_propagation.cpp)
-target_link_libraries(CppOrbital PUBLIC matplot)
+add_executable(CppOrbital orbital_propagation.cpp derivatives.cpp)
+add_library(OrbitalDerivatives derivatives.cpp)
+# target_link_libraries(CppOrbital PUBLIC matplotplusplus)
+# target_link_libraries(CppOrbital)
