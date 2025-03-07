@@ -7,9 +7,14 @@
 const double R_E = 6378;
 const double MU = 398600;
 
-StateDerivative keplerian_dynamics(double t, StateVector const &y) {
+struct KeplerianConfig {
+  const double mu;
+};
+
+
+StateDerivative keplerian_dynamics(double t, StateVector const &y, KeplerianConfig cfg) {
   double radius = sqrt(pow(y.x, 2) + pow(y.y, 2) + pow(y.z, 2));
-  double acc_coefficient = -MU / pow(radius, 3);
+  double acc_coefficient = -cfg.mu / pow(radius, 3);
   return StateDerivative(
     y.vx,
     y.vy,
@@ -19,7 +24,6 @@ StateDerivative keplerian_dynamics(double t, StateVector const &y) {
     acc_coefficient * y.z
   );
 }
-
 
 
 int main(int argc, char *argv[]) {
@@ -64,8 +68,10 @@ int main(int argc, char *argv[]) {
             << vel << " [km/s]" << std::endl;
   double dt = 1;
   double tf = 10000;
-  /*auto states = rk4_propagation(keplerian_dynamics, 0, Y0, dt, tf);*/
-  auto states = rk45_propagation(keplerian_dynamics, 0, Y0, dt, tf, 1e-8);
+
+  KeplerianConfig config {.mu = MU};
+
+  auto states = rk45_propagation<KeplerianConfig>(keplerian_dynamics, 0, Y0, dt, tf, 1e-8, config);
   std::cout << "Propagation Finished!" << std::endl;
   save_orbit(states, filename);
   std::cout << "Saved Orbital Data to " << filename << std::endl;
