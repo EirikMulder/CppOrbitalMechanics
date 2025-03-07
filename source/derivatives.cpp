@@ -24,6 +24,14 @@ const std::vector<double> ch_table = {47./450, 0, 12./25, 32./225, 1./30, 6./25}
 
 const std::vector<double> ct_table = {1./150, 0, -3./100, 16./75, 1./20, -6./25};
 
+// Define absolute value of a vector
+double abs(const StateDerivative &derivative) {
+  return sqrt(
+    pow(derivative.vx, 2) + pow(derivative.vy, 2) + pow(derivative.vz, 2)
+    + pow(derivative.ax, 2) + pow(derivative.ay, 2) + pow(derivative.az, 2)
+  );
+}
+
 
 StateDerivative::StateDerivative(double vx, double vy, double vz, double ax, double ay, double az)
     : vx(vx), vy(vy), vz(vz), ax(ax), ay(ay), az(az) { }
@@ -65,8 +73,21 @@ StateVector rk4_step(std::function<StateDerivative(double, StateVector)> f, doub
   return y + (1./6) * (k1 + 2*k2 + 2*k3 + k4);
 }
 
-StateVector rk45_step(std::function<StateDerivative(double, StateVector)> f, double t, const StateVector &y, double h) {
-
+DynamicStepResult rk45_step(std::function<StateDerivative(double, StateVector)> f, double t, const StateVector &y, double h, double epsilon) {
+  double truncation_error;
+  StateVector y_new = y;
+  do {
+    auto k1 = h * f(t + a_table[0] * h, y);
+    auto k2 = h * f(t + a_table[1] * h, y + b_table[1][0] * k1);
+    auto k3 = h * f(t + a_table[2] * h, y + b_table[2][0] * k1 + b_table[2][1] * k2);
+    auto k4 = h * f(t + a_table[3] * h, y + b_table[3][0] * k1 + b_table[3][1] * k2 + b_table[3][2] * k3);
+    auto k5 = h * f(t + a_table[4] * h, y + b_table[4][0] * k1 + b_table[4][1] * k2 + b_table[4][2] * k3 + b_table[4][3] * k4);
+    auto k6 = h * f(t + a_table[5] * h, y + b_table[5][0] * k1 + b_table[5][1] * k2 + b_table[5][2] * k3 + b_table[5][3] * k4 + b_table[5][4] * k5);
+    y_new = y + ch_table[0] * k1 + ch_table[1] * k2 + ch_table[2] * k3 + ch_table[3] * k4 + ch_table[4] * k5 + ch_table[5] * k6;
+    truncation_error = abs(ct_table[0] * k1 + ct_table[1] * k2 + ct_table[2] * k3 + ct_table[3] * k4 + ct_table[4] * k5 + ct_table[5] * k6);
+    h = 0.9 * h * pow(epsilon / truncation_error, 1./5);
+  } while (truncation_error > epsilon);
+  return DynamicStepResult {y_new, h};
 }
 
 std::unique_ptr<std::vector<StateVector>> euler_propagation(std::function<StateDerivative(double, StateVector)> f, double t0, const StateVector &y0, double dt, double tf) {
@@ -90,6 +111,24 @@ std::unique_ptr<std::vector<StateVector>> rk4_propagation(std::function<StateDer
   for (double t = t0; t < tf; t += dt) {
     states->push_back(y);
     y = rk4_step(f, t, y, dt);
+  }
+  states->push_back(y);
+  return states;
+}
+
+
+std::unique_ptr<std::vector<StateVector>> rk45_propagation(std::function<StateDerivative(double, StateVector)> f, double t0, const StateVector &y0, double dt, double tf, double epsilon) {
+  StateVector y = y0;
+  std::unique_ptr<std::vector<StateVector>> states(new std::vector<StateVector>());
+  int expected_steps = ceil(tf / dt);
+  states->reserve(expected_steps);
+  double t = t0;
+  while (t < tf) {
+    DynamicStepResult result = rk45_step(f, t, y, dt, epsilon);
+    y = result.y;
+    dt = result.h_new;
+    states->push_back(y);
+    t += dt;
   }
   states->push_back(y);
   return states;

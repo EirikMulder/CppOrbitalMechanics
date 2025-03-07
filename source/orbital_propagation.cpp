@@ -64,7 +64,8 @@ int main(int argc, char *argv[]) {
             << vel << " [km/s]" << std::endl;
   double dt = 1;
   double tf = 10000;
-  auto states = rk4_propagation(keplerian_dynamics, 0, Y0, dt, tf);
+  /*auto states = rk4_propagation(keplerian_dynamics, 0, Y0, dt, tf);*/
+  auto states = rk45_propagation(keplerian_dynamics, 0, Y0, dt, tf, 1e-8);
   std::cout << "Propagation Finished!" << std::endl;
   save_orbit(states, filename);
   std::cout << "Saved Orbital Data to " << filename << std::endl;

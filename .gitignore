@@ -2,6 +2,8 @@
 CppOrbital
 *.csv
 .cache
+libOrbitalDerivatives.a
+.idea/
 
 CMakeLists.txt.user
 CMakeCache.txt

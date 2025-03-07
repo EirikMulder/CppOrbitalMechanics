@@ -41,5 +41,7 @@ std::unique_ptr<std::vector<StateVector>> euler_propagation(std::function<StateD
 
 std::unique_ptr<std::vector<StateVector>> rk4_propagation(std::function<StateDerivative(double, StateVector)> f, double t0, const StateVector &y0, double dt, double tf);
 
+std::unique_ptr<std::vector<StateVector>> rk45_propagation(std::function<StateDerivative(double, StateVector)> f, double t0, const StateVector &y0, double dt, double tf, double epsilon);
+
 void save_orbit(std::unique_ptr<std::vector<StateVector>> const &states, std::string filename);
 
