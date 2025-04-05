@@ -6,26 +6,29 @@
 namespace orbital {
 
   namespace coefficients {
-inline constexpr std::vector<std::vector<double>> b_table = {
+inline constexpr std::array<std::array<double, 5>, 6> b_table = {
+  {
     {0, 0, 0, 0, 0},
     {2. / 9, 0, 0, 0, 0},
     {1. / 12, 1. / 4, 0, 0, 0},
     {69. / 128, -243. / 128, 135. / 64, 0, 0},
     {-17. / 12, 27. / 4, -27. / 5, 16. / 15, 0},
     {65. / 432, -5. / 16, 13. / 16, 4. / 27, 5. / 144},
+  }
 };
 
-inline constexpr std::vector<double> a_table = {0, 2. / 9, 1. / 3, 3. / 4, 1, 5. / 6};
+inline constexpr std::array<double, 6> a_table = {0, 2. / 9, 1. / 3, 3. / 4, 1, 5. / 6};
 
-inline constexpr std::vector<double> c_table = {1. / 9, 0, 9. / 20, 16. / 45, 1. / 12};
+inline constexpr std::array<double, 5> c_table = {1. / 9, 0, 9. / 20, 16. / 45, 1. / 12};
 
-inline constexpr std::vector<double> ch_table = {47. / 450, 0,       12. / 25,
+inline constexpr std::array<double, 6> ch_table = {47. / 450, 0,       12. / 25,
                                       32. / 225, 1. / 30, 6. / 25};
 
-inline constexpr std::vector<double> ct_table = {1. / 150, 0,       -3. / 100,
+inline constexpr std::array<double, 6> ct_table = {1. / 150, 0,       -3. / 100,
                                       16. / 75, 1. / 20, -6. / 25};
 
   }
+  using namespace coefficients;
 
 class StateDerivative {
 public:
@@ -44,6 +47,8 @@ public:
 StateDerivative operator*(double a, StateDerivative const &b);
 
 class StateVector {
+private:
+  alignas(32) std::array<double, 6> data;
 public:
   double x;
   double y;
