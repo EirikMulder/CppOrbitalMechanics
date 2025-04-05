@@ -1,10 +1,12 @@
 #pragma once
-
 #include <functional>
 #include <memory>
 #include <vector>
 
-const std::vector<std::vector<double>> b_table = {
+namespace orbital {
+
+  namespace coefficients {
+inline constexpr std::vector<std::vector<double>> b_table = {
     {0, 0, 0, 0, 0},
     {2. / 9, 0, 0, 0, 0},
     {1. / 12, 1. / 4, 0, 0, 0},
@@ -13,15 +15,17 @@ const std::vector<std::vector<double>> b_table = {
     {65. / 432, -5. / 16, 13. / 16, 4. / 27, 5. / 144},
 };
 
-const std::vector<double> a_table = {0, 2. / 9, 1. / 3, 3. / 4, 1, 5. / 6};
+inline constexpr std::vector<double> a_table = {0, 2. / 9, 1. / 3, 3. / 4, 1, 5. / 6};
 
-const std::vector<double> c_table = {1. / 9, 0, 9. / 20, 16. / 45, 1. / 12};
+inline constexpr std::vector<double> c_table = {1. / 9, 0, 9. / 20, 16. / 45, 1. / 12};
 
-const std::vector<double> ch_table = {47. / 450, 0,       12. / 25,
+inline constexpr std::vector<double> ch_table = {47. / 450, 0,       12. / 25,
                                       32. / 225, 1. / 30, 6. / 25};
 
-const std::vector<double> ct_table = {1. / 150, 0,       -3. / 100,
+inline constexpr std::vector<double> ct_table = {1. / 150, 0,       -3. / 100,
                                       16. / 75, 1. / 20, -6. / 25};
+
+  }
 
 class StateDerivative {
 public:
@@ -111,61 +115,62 @@ rk45_step(std::function<StateDerivative(double, StateVector, T)> f, double t,
 }
 
 template <typename T>
-std::unique_ptr<std::vector<StateVector>>
+std::vector<StateVector>
 euler_propagation(std::function<StateDerivative(double, StateVector, T)> f,
                   double t0, const StateVector &y0, double dt, double tf,
                   T cfg) {
   StateVector y = y0;
-  std::unique_ptr<std::vector<StateVector>> states(
-      new std::vector<StateVector>());
+  // std::unique_ptr<std::vector<StateVector>> states(
+  //     new std::vector<StateVector>());
+  std::vector<StateVector> states;
   int expected_steps = ceil(tf / dt);
-  states->reserve(expected_steps);
+  states.reserve(expected_steps);
   for (double t = t0; t < tf; t += dt) {
-    states->push_back(y);
+    states.push_back(y);
     y = euler_step(f, t, y, dt, cfg);
   }
-  states->push_back(y);
+  states.push_back(y);
   return states;
 }
 
 template <typename T>
-std::unique_ptr<std::vector<StateVector>>
+std::vector<StateVector>
 rk4_propagation(std::function<StateDerivative(double, StateVector)> f,
                 double t0, const StateVector &y0, double dt, double tf, T cfg) {
   StateVector y = y0;
-  std::unique_ptr<std::vector<StateVector>> states(
-      new std::vector<StateVector>());
+  std::vector<StateVector> states;
   int expected_steps = ceil(tf / dt);
-  states->reserve(expected_steps);
+  states.reserve(expected_steps);
   for (double t = t0; t < tf; t += dt) {
-    states->push_back(y);
+    states.push_back(y);
     y = rk4_step(f, t, y, dt, cfg);
   }
-  states->push_back(y);
+  states.push_back(y);
   return states;
 }
 
 template <typename T>
-std::unique_ptr<std::vector<StateVector>>
+std::vector<StateVector>
 rk45_propagation(std::function<StateDerivative(double, StateVector, T)> f,
                  double t0, const StateVector &y0, double dt, double tf,
                  double epsilon, T cfg) {
   StateVector y = y0;
-  std::unique_ptr<std::vector<StateVector>> states(
-      new std::vector<StateVector>());
+  std::vector<StateVector> states;
   int expected_steps = ceil(tf / dt);
-  states->reserve(expected_steps);
+  states.reserve(expected_steps);
   double t = t0;
   while (t < tf) {
     DynamicStepResult result = rk45_step(f, t, y, dt, epsilon, cfg);
     y = result.y;
     dt = result.h_new;
-    states->push_back(y);
+    states.push_back(y);
     t += dt;
   }
-  states->push_back(y);
+  states.push_back(y);
   return states;
 }
 
-void save_orbit(std::unique_ptr<std::vector<StateVector>> const &states,
+bool save_orbit(std::vector<StateVector> const &states,
                 std::string filename);
+
+}

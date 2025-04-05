@@ -1,25 +1,35 @@
 #include <cmath>
+#include <format>
 #include <functional>
 #include <iostream>
 
 #include "derivatives.h"
 
-const double R_E = 6378;
-const double MU = 398600;
+namespace orbital {
+  namespace earth_constants {
+
+constexpr double R_E = 6378;
+constexpr double MU = 398600;
+}
 
 struct KeplerianConfig {
   const double mu;
 };
 
+
 StateDerivative keplerian_dynamics(double t, StateVector const &y,
                                    KeplerianConfig cfg) {
-  double radius = sqrt(pow(y.x, 2) + pow(y.y, 2) + pow(y.z, 2));
+  double radius = sqrt(y.x* y.x + y.y * y.y + y.z * y.z);
   double acc_coefficient = -cfg.mu / pow(radius, 3);
   return StateDerivative(y.vx, y.vy, y.vz, acc_coefficient * y.x,
                          acc_coefficient * y.y, acc_coefficient * y.z);
 }
 
+}
+
 int main(int argc, char *argv[]) {
+  using namespace orbital;
+  using namespace orbital::earth_constants;
   double altitude = 400;
   double radius = R_E + altitude;
   double vel = sqrt(MU / radius);
@@ -37,6 +47,7 @@ int main(int argc, char *argv[]) {
     break;
   case 8:
     filename = argv[7];
+    [[fallthrough]];
   case 7:
     x0 = std::stod(argv[1]);
     y0 = std::stod(argv[2]);
@@ -69,7 +80,11 @@ int main(int argc, char *argv[]) {
   auto states = rk45_propagation<KeplerianConfig>(keplerian_dynamics, 0, Y0, dt,
                                                   tf, 1e-8, config);
   std::cout << "Propagation Finished!" << std::endl;
-  save_orbit(states, filename);
-  std::cout << "Saved Orbital Data to " << filename << std::endl;
-  /*plot_orbit(states);*/
+  bool save_result = save_orbit(states, filename);
+  if (save_result) {
+    std::cout << "Saved Orbital Data to " << filename << std::endl;
+  }
+  else {
+    std::cout << "Failed to save Orbital Data to " << filename << std::endl;
+  }
 }
